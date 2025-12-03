@@ -42,7 +42,7 @@ export default function Layout({ children, currentPageName }) {
                             </p>
                             <div className="flex items-center gap-3">
                                 <a 
-                                    href="https://twitter.com/textalyzer" 
+                                    href="https://twitter.com/Javlonbek_sk" 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
@@ -51,7 +51,7 @@ export default function Layout({ children, currentPageName }) {
                                     <Twitter className="w-4 h-4" />
                                 </a>
                                 <a 
-                                    href="https://github.com/textalyzer" 
+                                    href="https://github.com/messi450" 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
@@ -60,7 +60,7 @@ export default function Layout({ children, currentPageName }) {
                                     <Github className="w-4 h-4" />
                                 </a>
                                 <a 
-                                    href="mailto:support@textalyzer.app"
+                                    href="mailto:orozovjavlon28@gmail.com"
                                     className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 transition-colors"
                                     aria-label="Contact us via email"
                                 >

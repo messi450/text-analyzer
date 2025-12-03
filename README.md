@@ -28,8 +28,8 @@ A powerful, AI-powered text analyzer for readability, sentiment, grammar, and wr
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/textalyzer.git
-cd textalyzer
+git clone https://github.com/messi450/text-analyzer.git
+cd text-analyzer
 
 # Install dependencies
 npm install

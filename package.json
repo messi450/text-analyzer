@@ -1,10 +1,14 @@
 {
-  "name": "textalyzer",
+  "name": "text-analyzer",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Advanced AI-powered text analyzer for readability, sentiment, grammar, and writing style improvements",
-  "author": "Textalyzer",
+  "author": {
+    "name": "Orozov Javlon",
+    "email": "orozovjavlon28@gmail.com",
+    "url": "https://github.com/messi450"
+  },
   "license": "MIT",
   "keywords": [
     "text-analyzer",
