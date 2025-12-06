@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
+import { onCLS, onINP, onFCP, onLCP, onTTFB } from 'web-vitals';
 
 export default function useAnalytics() {
   useEffect(() => {
@@ -45,7 +45,7 @@ export default function useAnalytics() {
     };
 
     onCLS(sendToAnalytics);
-    onFID(sendToAnalytics);
+    onINP(sendToAnalytics);
     onFCP(sendToAnalytics);
     onLCP(sendToAnalytics);
     onTTFB(sendToAnalytics);
