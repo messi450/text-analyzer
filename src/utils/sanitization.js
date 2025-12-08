@@ -45,9 +45,21 @@ export const sanitize = {
   validateFile: (file) => {
     const errors = [];
 
+    const allowedMimeTypes = new Set([
+      'text/plain',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]);
+    const allowedExtensions = ['.txt', '.pdf', '.doc', '.docx'];
+
     // Check file type
-    if (!file.type || !file.type.startsWith('text/')) {
-      errors.push('Only text files are allowed');
+    const hasAllowedMime = file.type && (file.type.startsWith('text/') || allowedMimeTypes.has(file.type));
+    const fileName = typeof file.name === 'string' ? file.name.toLowerCase() : '';
+    const hasAllowedExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!hasAllowedMime && !hasAllowedExtension) {
+      errors.push('Unsupported file type. Please upload a TXT, PDF, or Word document.');
     }
 
     // Check file size (max 5MB)
