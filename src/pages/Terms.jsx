@@ -128,7 +128,7 @@ export default function Terms() {
                             </p>
                             <p className="text-slate-600">
                                 <a href="mailto:orozovjavlon28@gmail.com" className="text-indigo-600 hover:underline">
-                                    legal@textalyzer.app
+                                    orozovjavlon28@gmail.com
                                 </a>
                             </p>
                         </div>
