@@ -16,7 +16,7 @@ import ResultsSummary from '@/components/text-analyzer/ResultsSummary';
 import ReadabilityPanel, { calculateReadability } from '@/components/text-analyzer/ReadabilityPanel';
 import SentimentPanel, { analyzeSentiment } from '@/components/text-analyzer/SentimentPanel';
 import KeywordsPanel, { extractKeywords } from '@/components/text-analyzer/KeywordsPanel';
-import ExportPanel, { calculateOverallScore, getScoreColor } from '@/components/text-analyzer/ExportPanel';
+import ExportPanel, { calculateOverallScore } from '@/components/text-analyzer/ExportPanel';
 import HistoryPanel, { saveToLocalHistory } from '@/components/text-analyzer/HistoryPanel';
 import SaveAnalysisDialog from '@/components/text-analyzer/SaveAnalysisDialog';
 import SettingsPanel from '@/components/text-analyzer/SettingsPanel';
@@ -132,7 +132,7 @@ const BREAK_WORDS = ['and', 'but', 'or', 'so', 'because', 'which', 'that', 'whil
 // Suggestion Generation Utilities
 // ============================================
 
-function checkLongSentences(text, stats) {
+function checkLongSentences(text) {
     const suggestions = [];
     const sentenceMatches = [...text.matchAll(/[^.!?]+[.!?]+/g)];
 
@@ -177,9 +177,9 @@ function checkLongSentences(text, stats) {
 function checkPassiveVoice(text) {
     const suggestions = [];
     const passivePatterns = [
-        { regex: /\b(was|were)\s+(\w+ed)\b/gi, convert: (m, aux, verb) => verb.replace(/ed$/, '') + 's' },
-        { regex: /\b(is|are)\s+being\s+(\w+ed)\b/gi, convert: (m, aux, verb) => verb.replace(/ed$/, 's') },
-        { regex: /\b(has|have)\s+been\s+(\w+ed)\b/gi, convert: (m, aux, verb) => 'has ' + verb.replace(/ed$/, '') + 'ed' },
+        { regex: /\b(was|were)\s+(\w+ed)\b/gi },
+        { regex: /\b(is|are)\s+being\s+(\w+ed)\b/gi },
+        { regex: /\b(has|have)\s+been\s+(\w+ed)\b/gi },
     ];
 
     passivePatterns.forEach(pattern => {
@@ -286,81 +286,7 @@ function checkRepeatedWords(text) {
                 if (positions[i].index - positions[i - 1].index < 200) {
                     const synonyms = SYNONYMS[word] || [];
                     if (synonyms.length > 0) {
-                        </motion.div>
-
-                        {/* Right Panel: Tabbed Analysis */}
-                        <motion.div
-                            className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm overflow-hidden"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.1 }}
-                        >
-                            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                <div className="border-b border-slate-200/60 px-4 pt-3 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
-                                    <TabsList className="bg-white/80 p-0.5 rounded-xl h-9 grid grid-cols-4 w-full shadow-sm">
-                                        <TabsTrigger value="suggestions" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
-                                            Suggestions
-                                        </TabsTrigger>
-                                        <TabsTrigger value="rewrite" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
-                                            <Sliders className="w-3 h-3 mr-1" /> Tone
-                                        </TabsTrigger>
-                                        <TabsTrigger value="analytics" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
-                                            <Activity className="w-3 h-3 mr-1" /> Flow
-                                        </TabsTrigger>
-                                        <TabsTrigger value="stats" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">
-                                            <BarChart3 className="w-3 h-3 mr-1" /> Stats
-                                        </TabsTrigger>
-                                    </TabsList>
-                                </div>
-
-                                <div className="p-4 min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar">
-                                    <TabsContent value="suggestions" className="mt-0">
-                                        <QuickFixSuggestions
-                                            suggestions={localSuggestions}
-                                            onApplyFix={handleApplyFix}
-                                            onApplyAllFixes={handleApplyAllFixes}
-                                        />
-                                    </TabsContent>
-
-                                    <TabsContent value="rewrite" className="mt-0 space-y-4">
-                                        <ToneSlider text={text} onApply={setText} />
-                                    </TabsContent>
-
-                                    <TabsContent value="analytics" className="mt-0 space-y-5">
-                                        <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 rounded-xl p-4 border border-indigo-100/50">
-                                            <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                                                <Activity className="w-4 h-4 text-indigo-500" />
-                                                Sentence Length Variation
-                                            </h3>
-                                            <SentenceLengthChart text={text} />
-                                        </div>
-                                        <div className="bg-gradient-to-br from-purple-50/50 to-violet-50/50 rounded-xl p-4 border border-purple-100/50">
-                                            <h3 className="text-sm font-semibold text-slate-700 mb-3">Paragraph Structure</h3>
-                                            <ParagraphStructure text={text} />
-                                        </div>
-                                        <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 rounded-xl p-4 border border-violet-100/50">
-                                            <h3 className="text-sm font-semibold text-slate-700 mb-3">Reading Flow Heatmap</h3>
-                                            <ReadingFlowHeatmap text={text} />
-                                        </div>
-                                    </TabsContent>
-
-                                    <TabsContent value="stats" className="mt-0 space-y-4">
-                                        <StatsCards stats={stats} score={overallScore} />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <WordFrequencyTable wordFrequency={wordFrequency} />
-                                            <StatsChart stats={stats} />
-                                        </div>
-                                        <ResultsSummary stats={stats} wordFrequency={wordFrequency} readability={readability} sentiment={sentiment} />
-                                    </TabsContent>
-                                </div>
-                            </Tabs>
-                        </motion.div>
-                    </div>
-                </main>
-            </div>
-        </>
-    );
-}suggestions.push({
+                        suggestions.push({
                             id: `repeated-${positions[i].index}`,
                             type: 'style',
                             severity: 'low',
@@ -384,7 +310,6 @@ function checkRepeatedWords(text) {
 function checkSpacing(text) {
     const suggestions = [];
 
-    // Double spaces
     const doubleSpaceRegex = /  +/g;
     let match;
     while ((match = doubleSpaceRegex.exec(text)) !== null) {
@@ -401,7 +326,6 @@ function checkSpacing(text) {
         });
     }
 
-    // Missing space after punctuation
     const missingSpaceRegex = /[.!?,;:][A-Za-z]/g;
     while ((match = missingSpaceRegex.exec(text)) !== null) {
         suggestions.push({
@@ -420,11 +344,11 @@ function checkSpacing(text) {
     return suggestions;
 }
 
-function generateLocalSuggestions(text, stats, writingStyle) {
+function generateLocalSuggestions(text, stats) {
     if (!text || stats.totalWords === 0) return [];
 
     const suggestions = [
-        ...checkLongSentences(text, stats),
+        ...checkLongSentences(text),
         ...checkPassiveVoice(text),
         ...checkFillerWords(text),
         ...checkWeakWords(text),
@@ -452,7 +376,6 @@ export default function TextAnalyzerPage() {
     const [metricsOpen, setMetricsOpen] = useState(false);
     const [user, setUser] = useState(null);
 
-    // Initialize auth and preferences
     useEffect(() => {
         const currentUser = authService.getCurrentUser();
         if (currentUser) {
@@ -469,7 +392,6 @@ export default function TextAnalyzerPage() {
         }
     }, []);
 
-    // Memoized analysis calculations
     const analysisData = useMemo(() => {
         if (!text.trim()) {
             return {
@@ -488,7 +410,7 @@ export default function TextAnalyzerPage() {
         const wordFrequency = analyzer.getWordFrequency();
         const readabilityData = calculateReadability(text, stats);
         const sentimentData = analyzeSentiment(text);
-        const suggestions = generateLocalSuggestions(text, stats, writingStyle);
+        const suggestions = generateLocalSuggestions(text, stats);
         const scoreResult = calculateOverallScore(stats, readabilityData, sentimentData, suggestions);
         const score = typeof scoreResult === 'object' ? scoreResult.score : scoreResult;
 
@@ -503,10 +425,8 @@ export default function TextAnalyzerPage() {
         };
     }, [text, writingStyle]);
 
-    // Destructure for easier access
     const { stats, wordFrequency, readability, sentiment, keywords, localSuggestions, overallScore } = analysisData;
 
-    // Callback handlers
     const handleClear = useCallback(() => setText(''), []);
 
     const handleAuthChange = useCallback((newUser) => {
@@ -579,7 +499,6 @@ export default function TextAnalyzerPage() {
         setText(newText);
     }, [text]);
 
-    // Computed values
     const readingTime = Math.max(1, Math.ceil(stats.totalWords / 200));
     const isAuthenticated = !!user;
 
@@ -598,16 +517,10 @@ export default function TextAnalyzerPage() {
             </Helmet>
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-                {/* Header */}
                 <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-slate-700/60 sticky top-0 z-20">
                     <div className="max-w-6xl mx-auto px-4">
                         <div className="flex items-center justify-between h-14">
-                            {/* Logo and Auth */}
-                            <motion.div
-                                className="flex items-center gap-3"
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                            >
+                            <motion.div className="flex items-center gap-3" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
                                         <Sparkles className="w-4 h-4 text-white" />
@@ -619,13 +532,7 @@ export default function TextAnalyzerPage() {
                                 {user ? (
                                     <div className="flex items-center gap-1">
                                         <span className="text-xs text-slate-600 hidden sm:inline">{user.name}</span>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={handleLogout}
-                                            className="h-8 w-8 text-indigo-600 hover:bg-indigo-50"
-                                            title="Logout"
-                                        >
+                                        <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 text-indigo-600 hover:bg-indigo-50" title="Logout">
                                             <LogOut className="w-4 h-4" />
                                         </Button>
                                     </div>
@@ -634,13 +541,8 @@ export default function TextAnalyzerPage() {
                                 )}
                             </motion.div>
 
-                            {/* Stats Display */}
                             {stats.totalWords > 0 && (
-                                <motion.div
-                                    className="hidden md:flex items-center gap-3 text-xs"
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                >
+                                <motion.div className="hidden md:flex items-center gap-3 text-xs" initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}>
                                     <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-full">
                                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                                         <span className="text-indigo-700 font-medium">{stats.totalWords} words</span>
@@ -659,35 +561,16 @@ export default function TextAnalyzerPage() {
                                 </motion.div>
                             )}
 
-                            {/* Action Buttons */}
                             <div className="flex items-center gap-0.5 sm:gap-1">
-                                <HistoryPanel
-                                    analyses={[]}
-                                    onLoad={handleLoadAnalysis}
-                                    onDelete={() => { }}
-                                    onToggleFavorite={() => { }}
-                                    isLoading={false}
-                                    isAuthenticated={isAuthenticated}
-                                />
+                                <HistoryPanel analyses={[]} onLoad={handleLoadAnalysis} onDelete={() => { }} onToggleFavorite={() => { }} isLoading={false} isAuthenticated={isAuthenticated} />
                                 <ExportPanel text={text} stats={stats} wordFrequency={wordFrequency} readability={readability} sentiment={sentiment} keywords={keywords} suggestions={localSuggestions} />
                                 <SaveAnalysisDialog onSave={handleSaveAnalysis} disabled={stats.totalWords === 0} isSaving={isSaving} />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={toggleTheme}
-                                    className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-950"
-                                    title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-                                >
+                                <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-950" title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
                                     {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                                 </Button>
                                 <SettingsPanel preferences={preferences} onUpdate={handleUpdatePreferences} writingStyle={writingStyle} onStyleChange={setWritingStyle} />
                                 {text && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleClear}
-                                        className="h-8 px-3 border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-300 font-medium gap-1.5 transition-all"
-                                    >
+                                    <Button variant="outline" size="sm" onClick={handleClear} className="h-8 px-3 border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 hover:border-red-300 font-medium gap-1.5 transition-all">
                                         <Eraser className="w-3.5 h-3.5" />
                                         <span className="hidden sm:inline">Clear</span>
                                     </Button>
@@ -697,22 +580,11 @@ export default function TextAnalyzerPage() {
                     </div>
                 </header>
 
-                {/* Main Content */}
                 <main className="max-w-6xl mx-auto px-4 py-5">
                     <div className="grid lg:grid-cols-2 gap-5">
-                        {/* Left Panel: Text Input and Metrics */}
-                        <motion.div
-                            className="space-y-4"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4 }}
-                        >
+                        <motion.div className="space-y-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60 p-4 shadow-sm hover:shadow-md transition-shadow">
-                                <TextInputWithHighlights
-                                    onTextChange={setText}
-                                    text={text}
-                                    issues={localSuggestions}
-                                />
+                                <TextInputWithHighlights onTextChange={setText} text={text} issues={localSuggestions} />
                             </div>
 
                             <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
@@ -724,12 +596,7 @@ export default function TextAnalyzerPage() {
                                         </motion.div>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent>
-                                        <motion.div
-                                            className="p-4 pt-0 space-y-4"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            transition={{ duration: 0.3 }}
-                                        >
+                                        <motion.div className="p-4 pt-0 space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <ReadabilityPanel readability={readability} />
                                                 <SentimentPanel sentiment={sentiment} />
@@ -739,3 +606,57 @@ export default function TextAnalyzerPage() {
                                     </CollapsibleContent>
                                 </div>
                             </Collapsible>
+                        </motion.div>
+
+                        <motion.div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm overflow-hidden" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+                            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                                <div className="border-b border-slate-200/60 px-4 pt-3 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
+                                    <TabsList className="bg-white/80 p-0.5 rounded-xl h-9 grid grid-cols-4 w-full shadow-sm">
+                                        <TabsTrigger value="suggestions" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Suggestions</TabsTrigger>
+                                        <TabsTrigger value="rewrite" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><Sliders className="w-3 h-3 mr-1" /> Tone</TabsTrigger>
+                                        <TabsTrigger value="analytics" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><Activity className="w-3 h-3 mr-1" /> Flow</TabsTrigger>
+                                        <TabsTrigger value="stats" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><BarChart3 className="w-3 h-3 mr-1" /> Stats</TabsTrigger>
+                                    </TabsList>
+                                </div>
+
+                                <div className="p-4 min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar">
+                                    <TabsContent value="suggestions" className="mt-0">
+                                        <QuickFixSuggestions suggestions={localSuggestions} onApplyFix={handleApplyFix} onApplyAllFixes={handleApplyAllFixes} />
+                                    </TabsContent>
+
+                                    <TabsContent value="rewrite" className="mt-0 space-y-4">
+                                        <ToneSlider text={text} onApply={setText} />
+                                    </TabsContent>
+
+                                    <TabsContent value="analytics" className="mt-0 space-y-5">
+                                        <div className="bg-gradient-to-br from-indigo-50/50 to-purple-50/50 rounded-xl p-4 border border-indigo-100/50">
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-indigo-500" />Sentence Length Variation</h3>
+                                            <SentenceLengthChart text={text} />
+                                        </div>
+                                        <div className="bg-gradient-to-br from-purple-50/50 to-violet-50/50 rounded-xl p-4 border border-purple-100/50">
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3">Paragraph Structure</h3>
+                                            <ParagraphStructure text={text} />
+                                        </div>
+                                        <div className="bg-gradient-to-br from-violet-50/50 to-pink-50/50 rounded-xl p-4 border border-violet-100/50">
+                                            <h3 className="text-sm font-semibold text-slate-700 mb-3">Reading Flow Heatmap</h3>
+                                            <ReadingFlowHeatmap text={text} />
+                                        </div>
+                                    </TabsContent>
+
+                                    <TabsContent value="stats" className="mt-0 space-y-4">
+                                        <StatsCards stats={stats} score={overallScore} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <WordFrequencyTable wordFrequency={wordFrequency} />
+                                            <StatsChart stats={stats} />
+                                        </div>
+                                        <ResultsSummary stats={stats} wordFrequency={wordFrequency} readability={readability} sentiment={sentiment} />
+                                    </TabsContent>
+                                </div>
+                            </Tabs>
+                        </motion.div>
+                    </div>
+                </main>
+            </div>
+        </>
+    );
+}
