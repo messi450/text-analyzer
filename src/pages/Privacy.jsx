@@ -113,7 +113,7 @@ export default function Privacy() {
                                 If you have any questions about this Privacy Policy or our data practices, please contact us at:
                             </p>
                             <p className="text-slate-600">
-                                <a href="mailto:privacy@textalyzer.app" className="text-indigo-600 hover:underline">
+                                <a href="mailto:orozovjavlon28@gmail.com" className="text-indigo-600 hover:underline">
                                     privacy@textalyzer.app
                                 </a>
                             </p>
