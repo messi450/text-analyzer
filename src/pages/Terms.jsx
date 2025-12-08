@@ -127,7 +127,7 @@ export default function Terms() {
                                 For questions about these Terms, contact us at:
                             </p>
                             <p className="text-slate-600">
-                                <a href="mailto:legal@textalyzer.app" className="text-indigo-600 hover:underline">
+                                <a href="mailto:orozovjavlon28@gmail.com" className="text-indigo-600 hover:underline">
                                     legal@textalyzer.app
                                 </a>
                             </p>
