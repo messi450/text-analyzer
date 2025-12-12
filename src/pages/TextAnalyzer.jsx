@@ -9,7 +9,7 @@ import { Sparkles, Trash2, BarChart3, Wand2, ChevronDown, Activity, Sliders, Log
 
 import { Button } from "@/components/ui/button";
 
-import { Helmet } from 'react-helmet-async';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -635,7 +635,7 @@ function generateLocalSuggestions(text, stats) {
 
 // ============================================
 
-export default function TextAnalyzerPage() {
+function TextAnalyzerPageContent() {
 
     const { theme, toggleTheme } = useTheme();
 
@@ -867,6 +867,35 @@ export default function TextAnalyzerPage() {
 
     }, [text]);
 
+    // FIXED: Better handler for AI suggestions with proper text replacement
+    const handleApplySuggestion = useCallback((suggestion) => {
+        if (suggestion && suggestion.suggested && suggestion.original) {
+            // Use start/end positions if available for precise replacement
+            if (suggestion.start !== undefined && suggestion.end !== undefined) {
+                const newText = text.slice(0, suggestion.start) + suggestion.suggested + text.slice(suggestion.end);
+                setText(newText);
+            } else {
+                // Fallback to simple replace (only first occurrence)
+                const newText = text.replace(suggestion.original, suggestion.suggested);
+                setText(newText);
+            }
+            toast.success('Suggestion applied');
+        }
+    }, [text]);
+
+    // FIXED: Better handler for grammar fixes
+    const handleApplyGrammarFix = useCallback((original, suggested, index) => {
+        // Find the position of the error in the text
+        const position = text.indexOf(original);
+        if (position !== -1) {
+            const newText = text.slice(0, position) + suggested + text.slice(position + original.length);
+            setText(newText);
+            toast.success('Grammar fix applied');
+        } else {
+            toast.error('Could not find text to replace');
+        }
+    }, [text]);
+
     const readingTime = Math.max(1, Math.ceil(stats.totalWords / 200));
 
     const isAuthenticated = !!user;
@@ -991,7 +1020,7 @@ export default function TextAnalyzerPage() {
 
                                 <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:text-slate-400 dark:hover:text-indigo-400 dark:hover:bg-indigo-950" title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
 
-                                    {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />
+                                    {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
 
                                 </Button>
 
@@ -1155,31 +1184,15 @@ export default function TextAnalyzerPage() {
                                         <AIWritingAssistant
                                             text={text}
                                             writingStyle={writingStyle}
-                                            onApplySuggestion={(suggestion) => {
-                                                // Handle applying AI suggestions
-                                                if (suggestion.suggested && suggestion.original) {
-                                                    setText(text.replace(suggestion.original, suggestion.suggested));
-                                                }
-                                            }}
+                                            onApplySuggestion={handleApplySuggestion}
                                         />
                                     </TabsContent>
 
                                     <TabsContent value="grammar" className="mt-0">
-
                                         <GrammarChecker 
-
                                             text={text} 
-
-                                            onApplyFix={(original, suggested) => {
-
-                                                // Handle applying the fix to the text
-
-                                                setText(text.replace(original, suggested));
-
-                                            }}
-
+                                            onApplyFix={handleApplyGrammarFix}
                                         />
-
                                     </TabsContent>
 
                                 </div>
@@ -1198,4 +1211,13 @@ export default function TextAnalyzerPage() {
 
     );
 
+}
+
+// Wrap with HelmetProvider
+export default function TextAnalyzerPage() {
+    return (
+        <HelmetProvider>
+            <TextAnalyzerPageContent />
+        </HelmetProvider>
+    );
 }
