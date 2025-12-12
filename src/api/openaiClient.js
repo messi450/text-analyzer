@@ -3,13 +3,13 @@ import env from '@/lib/env';
 
 // Initialize OpenAI client
 export const openai = new OpenAI({
-  apiKey: env.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,
-  dangerouslyAllowBrowser: true // Only for client-side usage
+  apiKey: env.OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true // Only for client-side usage - TODO: Move to secure backend proxy
 });
 
 // Check if OpenAI is available
 export const isOpenAIAvailable = () => {
-  return !!env.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;
+  return !!env.OPENAI_API_KEY;
 };
 
 // Grammar checking function
