@@ -1,6 +1,6 @@
 // OpenAI API Client for Grammar Checking - Enhanced with debugging
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+const OPENAI_API_KEY = import.meta.env.example.VITE_OPENAI_API_KEY;
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Debug logging
@@ -103,7 +103,7 @@ Only return the JSON array, nothing else. If there are no errors, return an empt
             
             // Provide helpful error messages
             if (response.status === 401) {
-                throw new Error('Invalid API key. Please check your VITE_OPENAI_API_KEY in .env file');
+                throw new Error('Invalid API key. Please check your VITE_OPENAI_API_KEY in .env.example file');
             } else if (response.status === 429) {
                 throw new Error('Rate limit exceeded. Please try again in a few moments');
             } else if (response.status === 500) {
