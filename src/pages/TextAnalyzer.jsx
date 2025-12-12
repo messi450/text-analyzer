@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
 import GrammarChecker from '@/components/text-analyzer/GrammarChecker';
+import AIWritingAssistant from '@/components/text-analyzer/AIWritingAssistant';
 
 import { motion } from 'framer-motion';
 
-import { Sparkles, Trash2, BarChart3, Wand2, ChevronDown, Activity, Sliders, LogOut, User, Eraser, Sun, Moon, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Trash2, BarChart3, Wand2, ChevronDown, Activity, Sliders, LogOut, User, Eraser, Sun, Moon, CheckCircle2, Brain } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 
@@ -1074,7 +1075,7 @@ export default function TextAnalyzerPage() {
 
                                 <div className="border-b border-slate-200/60 px-4 pt-3 bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
 
-                                    <TabsList className="bg-white/80 p-0.5 rounded-xl h-9 grid grid-cols-5 w-full shadow-sm">
+                                    <TabsList className="bg-white/80 p-0.5 rounded-xl h-9 grid grid-cols-6 w-full shadow-sm">
 
                                         <TabsTrigger value="suggestions" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Suggestions</TabsTrigger>
 
@@ -1083,6 +1084,8 @@ export default function TextAnalyzerPage() {
                                         <TabsTrigger value="analytics" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><Activity className="w-3 h-3 mr-1" /> Flow</TabsTrigger>
 
                                         <TabsTrigger value="stats" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><BarChart3 className="w-3 h-3 mr-1" /> Stats</TabsTrigger>
+
+                                        <TabsTrigger value="ai" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><Brain className="w-3 h-3 mr-1" /> AI</TabsTrigger>
 
                                         <TabsTrigger value="grammar" className="text-xs rounded-lg data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all"><CheckCircle2 className="w-3 h-3 mr-1" /> Grammar</TabsTrigger>
 
@@ -1146,6 +1149,19 @@ export default function TextAnalyzerPage() {
 
                                         <ResultsSummary stats={stats} wordFrequency={wordFrequency} readability={readability} sentiment={sentiment} />
 
+                                    </TabsContent>
+
+                                    <TabsContent value="ai" className="mt-0">
+                                        <AIWritingAssistant
+                                            text={text}
+                                            writingStyle={writingStyle}
+                                            onApplySuggestion={(suggestion) => {
+                                                // Handle applying AI suggestions
+                                                if (suggestion.suggested && suggestion.original) {
+                                                    setText(text.replace(suggestion.original, suggestion.suggested));
+                                                }
+                                            }}
+                                        />
                                     </TabsContent>
 
                                     <TabsContent value="grammar" className="mt-0">
