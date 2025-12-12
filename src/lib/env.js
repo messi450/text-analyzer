@@ -7,9 +7,7 @@ const requiredEnvVars = {
     default: '692ee5cf01eb8c5c45d1e044'
   },
 
-    // OpenAI
-  OPENAI_API_KEY: import.meta.env.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,
-  
+    
   // Analytics (optional)
   VITE_GA_TRACKING_ID: {
     required: false,
@@ -67,6 +65,9 @@ clientEnvVars.forEach(key => {
 
 // Export validated environment
 export const env = {
+  // OpenAI
+  OPENAI_API_KEY: import.meta.env.VITE_OPENAI_API_KEY,
+  
   // Base44
   BASE44_APP_ID: import.meta.env.VITE_BASE44_APP_ID || '692ee5cf01eb8c5c45d1e044',
 
