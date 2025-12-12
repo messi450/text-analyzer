@@ -1,5 +1,5 @@
 // Base44 API Client for AI Writing Analysis
-// This is a comprehensive AI integration service
+// This is a comprehensive AI integration servic
 
 const BASE44_API_KEY = import.meta.env.VITE_BASE44_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
 const API_URL = 'https://api.openai.com/v1/chat/completions';
