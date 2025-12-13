@@ -1,0 +1,29 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from '@/App.jsx';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import '@/index.css';
+import useAnalytics from '@/hooks/useAnalytics'; // GA + Web Vitals hook
+
+function Main() {
+  // Initialize analytics safely inside React
+  useAnalytics();
+
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
+
+// Check if root element exists
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Root element not found. Please add <div id='root'></div> in index.html");
+}
+
+ReactDOM.createRoot(rootElement).render(
+  <React.StrictMode>
+    <Main />
+  </React.StrictMode>
+);
