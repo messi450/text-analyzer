@@ -6,32 +6,32 @@
   
   <!-- Homepage -->
   <url>
-    <loc>https://textanalyzer.online/</loc>
-    <lastmod>2025-12-03</lastmod>
+    <loc>https://textalyzer.app/</loc>
+    <lastmod>2025-12-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   
   <!-- Text Analyzer Tool -->
   <url>
-    <loc>https://textanalyzer.online/TextAnalyzer</loc>
-    <lastmod>2025-12-03</lastmod>
+    <loc>https://textalyzer.app/TextAnalyzer</loc>
+    <lastmod>2025-12-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   
   <!-- Privacy Policy -->
   <url>
-    <loc>https://textanalyzer.online/privacy</loc>
-    <lastmod>2025-12-03</lastmod>
+    <loc>https://textalyzer.app/privacy</loc>
+    <lastmod>2025-12-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <!-- Terms of Service -->
   <url>
-    <loc>https://textanalyzer.online/terms</loc>
-    <lastmod>2025-12-03</lastmod>
+    <loc>https://textalyzer.app/terms</loc>
+    <lastmod>2025-12-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

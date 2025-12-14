@@ -129,7 +129,7 @@ class TextAnalyzer {
 
             .filter(w => w.length > 0);
 
-        
+
 
         return words.reduce((freq, word) => {
 
@@ -906,11 +906,11 @@ function TextAnalyzerPageContent() {
 
             <Helmet>
 
-                <title>Textalyzer - AI-Powered Text Analyzer | Readability, Grammar & Writing Assistant</title>
+                <title>Text Analyzer AI – Free Readability, Grammar & Sentiment Checker</title>
 
-                <meta name="description" content="Analyze your text instantly with Textalyzer. Get AI-powered readability scores, sentiment analysis, grammar suggestions, keyword extraction, and professional writing improvements. Free online text analyzer tool." />
+                <meta name="description" content="Free online text analyzer. Instantly check readability, grammar, sentiment, and word count. The #1 AI-powered writing enhancement tool." />
 
-                <meta name="keywords" content="text analyzer, readability checker, grammar checker, sentiment analysis, AI writing assistant, word counter, Flesch reading score, content optimization, SEO writing tool, writing improvement" />
+                <meta name="keywords" content="text analyzer, readability checker, grammar check, sentiment analysis, free text tool, seo writing, word counter, ai writing assistant" />
 
                 <meta property="og:title" content="Textalyzer - AI-Powered Text Analyzer" />
 
@@ -1189,8 +1189,8 @@ function TextAnalyzerPageContent() {
                                     </TabsContent>
 
                                     <TabsContent value="grammar" className="mt-0">
-                                        <GrammarChecker 
-                                            text={text} 
+                                        <GrammarChecker
+                                            text={text}
                                             onApplyFix={handleApplyGrammarFix}
                                         />
                                     </TabsContent>
