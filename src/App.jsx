@@ -3,6 +3,7 @@ import Pages from '@/pages/index.jsx';
 import { Toaster } from '@/components/ui/sonner';
 import { Toaster as ShadcnToaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         }}
       />
       <ShadcnToaster />
+      <Analytics />
     </ThemeProvider>
   );
 }
