@@ -7,7 +7,8 @@ import { checkGrammarGemini, generateSuggestionsGemini, isGeminiAvailable } from
 
 import { motion } from 'framer-motion';
 
-import { Sparkles, Trash2, BarChart3, Wand2, ChevronDown, Activity, Sliders, LogOut, User, Eraser, Sun, Moon, CheckCircle2, Brain } from 'lucide-react';
+import { Sparkles, Trash2, BarChart3, Wand2, ChevronDown, Activity, Sliders, LogOut, User, Eraser, Sun, Moon, CheckCircle2, Brain, Loader2 } from 'lucide-react';
+
 
 import { Button } from "@/components/ui/button";
 
