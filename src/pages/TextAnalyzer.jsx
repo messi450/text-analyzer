@@ -832,20 +832,36 @@ function TextAnalyzerPageContent() {
         setIsFetchingAiSuggestions(true);
         try {
             const suggestions = await generateSuggestionsGemini(text, stats, writingStyle);
-            // Assign IDs to AI suggestions
-            const formatted = suggestions.map((s, i) => ({
-                id: `ai-suggest-${i}-${Date.now()}`,
-                ...s
-            }));
+
+            // Assign IDs and try to find positions for AI suggestions
+            const formatted = (suggestions || []).map((s, i) => {
+                let start, end;
+                if (s.original) {
+                    const index = text.indexOf(s.original);
+                    if (index !== -1) {
+                        start = index;
+                        end = index + s.original.length;
+                    }
+                }
+
+                return {
+                    id: `ai-suggest-${i}-${Date.now()}`,
+                    ...s,
+                    start,
+                    end
+                };
+            });
+
             setAiSuggestions(formatted);
             toast.success(`Found ${formatted.length} AI suggestions`);
         } catch (error) {
             console.error('AI Suggestions error:', error);
-            toast.error('Failed to fetch AI suggestions');
+            toast.error('Failed to fetch AI suggestions. ' + (error.message || ''));
         } finally {
             setIsFetchingAiSuggestions(false);
         }
     }, [text, stats, writingStyle]);
+
 
 
     const handleLoadAnalysis = useCallback((analysis) => {
@@ -875,44 +891,37 @@ function TextAnalyzerPageContent() {
     }, []);
 
     const handleApplyFix = useCallback((issue) => {
-
         if (issue.suggested !== undefined && issue.start !== undefined && issue.end !== undefined) {
-
             const newText = text.slice(0, issue.start) + issue.suggested + text.slice(issue.end);
-
             setText(newText);
-
+            toast.success('Fix applied');
+        } else if (issue.original && issue.suggested) {
+            // Fallback for issues without offsets
+            const newText = text.replace(issue.original, issue.suggested);
+            setText(newText);
+            toast.success('Fix applied');
         }
-
     }, [text]);
 
     const handleApplyAllFixes = useCallback((sortedFixes) => {
-
         let newText = text;
-
+        // Apply from end to start to avoid shifting indices
         for (const issue of sortedFixes) {
-
             if (issue.suggested !== undefined && issue.start !== undefined && issue.end !== undefined) {
-
                 newText = newText.slice(0, issue.start) + issue.suggested + newText.slice(issue.end);
-
             }
-
         }
-
         setText(newText);
-
+        toast.success(`Applied ${sortedFixes.length} fixes`);
     }, [text]);
 
-    // FIXED: Better handler for AI suggestions with proper text replacement
     const handleApplySuggestion = useCallback((suggestion) => {
         if (suggestion && suggestion.suggested && suggestion.original) {
-            // Use start/end positions if available for precise replacement
-            if (suggestion.start !== undefined && suggestion.end !== undefined) {
-                const newText = text.slice(0, suggestion.start) + suggestion.suggested + text.slice(suggestion.end);
+            const position = text.indexOf(suggestion.original);
+            if (position !== -1) {
+                const newText = text.slice(0, position) + suggestion.suggested + text.slice(position + suggestion.original.length);
                 setText(newText);
             } else {
-                // Fallback to simple replace (only first occurrence)
                 const newText = text.replace(suggestion.original, suggestion.suggested);
                 setText(newText);
             }
@@ -920,18 +929,23 @@ function TextAnalyzerPageContent() {
         }
     }, [text]);
 
-    // FIXED: Better handler for grammar fixes
     const handleApplyGrammarFix = useCallback((original, suggested, index) => {
-        // Find the position of the error in the text
-        const position = text.indexOf(original);
-        if (position !== -1) {
-            const newText = text.slice(0, position) + suggested + text.slice(position + original.length);
+        // Try to find the exact occurrence if possible
+        const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const matches = [...text.matchAll(regex)];
+
+        // If we have multiple matches and an index, we might try to be smart, 
+        // but for now, we'll just replace the first one that makes sense
+        if (matches.length > 0) {
+            const match = matches[0]; // Simplified
+            const newText = text.slice(0, match.index) + suggested + text.slice(match.index + original.length);
             setText(newText);
             toast.success('Grammar fix applied');
         } else {
-            toast.error('Could not find text to replace');
+            toast.error('Could not find text to replace. It might have already been modified.');
         }
     }, [text]);
+
 
     const readingTime = Math.max(1, Math.ceil(stats.totalWords / 200));
 

@@ -3,16 +3,19 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 export function isGeminiAvailable() {
-    return !!GEMINI_API_KEY;
+    return !!GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE';
 }
 
 /**
- * General purpose function to invoke Gemini LLM
+ * General purpose function to invoke Gemini LLM with timeout and robust JSON parsing
  */
-export async function invokeGeminiLLM({ prompt, response_json_schema }) {
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+export async function invokeGeminiLLM({ prompt, response_json_schema, timeout = 30000 }) {
+    if (!isGeminiAvailable()) {
         throw new Error('Gemini API key is not configured. Please add a valid VITE_GEMINI_API_KEY to your .env file');
     }
+
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
 
     try {
         const fullPrompt = response_json_schema
@@ -24,6 +27,7 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            signal: controller.signal,
             body: JSON.stringify({
                 contents: [{
                     parts: [{ text: fullPrompt }]
@@ -37,13 +41,15 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
             })
         });
 
+        clearTimeout(id);
+
         if (!response.ok) {
             const errorText = await response.text();
             let errorData;
             try {
                 errorData = JSON.parse(errorText);
             } catch (e) {
-                throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+                throw new Error(`Gemini API error (${response.status}): ${errorText.substring(0, 100)}`);
             }
             throw new Error(errorData.error?.message || `Gemini API request failed with status ${response.status}`);
         }
@@ -56,8 +62,8 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
         }
 
         if (response_json_schema) {
-            // More robust JSON extraction
             try {
+                // More robust JSON extraction (extracts {} or [])
                 const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
                 const cleanedJson = jsonMatch ? jsonMatch[0] : content;
                 return JSON.parse(cleanedJson);
@@ -69,17 +75,23 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
 
         return content;
     } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out. The AI is taking too long to respond. Please try again.');
+        }
         console.error('Gemini API Error:', error);
         throw error;
     }
 }
 
-
 /**
  * Specifically for grammar checking to maintain compatibility with existing components
  */
 export async function checkGrammarGemini(text) {
-    const prompt = `You are an expert grammar checker. Analyze the text and identify grammar errors, spelling mistakes, punctuation issues, and style problems. Return your response as a JSON array of objects with this structure:
+    const prompt = `You are an expert grammar checker. Analyze the text and identify grammar errors, spelling mistakes, punctuation issues, and style problems. 
+For each error, provide the EXACT original text snippet so it can be automatically replaced.
+
+Return your response as a JSON array of objects with this structure:
 [
     {
         "original": "the exact text with the error",
@@ -89,18 +101,6 @@ export async function checkGrammarGemini(text) {
         "explanation": "detailed explanation of why this is an error and how to fix it"
     }
 ]
-
-Focus on:
-- Subject-verb agreement
-- Tense consistency
-- Punctuation errors
-- Spelling mistakes
-- Run-on sentences
-- Fragment sentences
-- Pronoun agreement
-- Misplaced modifiers
-
-Only return the JSON array, nothing else. If there are no errors, return an empty array [].
 
 TEXT TO CHECK:
 "${text}"`;
@@ -115,7 +115,7 @@ TEXT TO CHECK:
                     original: { type: "string" },
                     suggested: { type: "string" },
                     title: { type: "string" },
-                    severity: { type: "string" },
+                    severity: { type: "string", enum: ["high", "medium", "low"] },
                     explanation: { type: "string" }
                 },
                 required: ["original", "suggested", "title", "severity", "explanation"]
@@ -126,6 +126,7 @@ TEXT TO CHECK:
     // Format for component compatibility (adding IDs)
     return (result || []).map((error, index) => ({
         id: `grammar-${index}-${Date.now()}`,
+        type: 'grammar',
         ...error
     }));
 }
@@ -136,7 +137,6 @@ TEXT TO CHECK:
 export async function generateSuggestionsGemini(text, stats, writingStyle) {
     const prompt = `Analyze this text for writing improvements. Return 3-5 high-quality suggestions.
 Context: Writing style is ${writingStyle}.
-Stats: ${JSON.stringify(stats)}
 
 TEXT:
 "${text}"
@@ -144,26 +144,34 @@ TEXT:
 Provide response as JSON:
 [
     {
-        "type": "error|warning|info|success",
+        "type": "style|clarity|tone|structure",
         "title": "Brief title",
         "description": "Clear explanation",
-        "examples": ["example1", "example2"]
+        "original": "optional snippet of original text",
+        "suggested": "optional snippet of fixed text"
     }
 ]`;
 
-    return await invokeGeminiLLM({
+    const result = await invokeGeminiLLM({
         prompt,
         response_json_schema: {
             type: "array",
             items: {
                 type: "object",
                 properties: {
-                    type: { type: "string", enum: ["error", "warning", "info", "success"] },
+                    type: { type: "string", enum: ["style", "clarity", "tone", "structure"] },
                     title: { type: "string" },
                     description: { type: "string" },
-                    examples: { type: "array", items: { type: "string" } }
-                }
+                    original: { type: "string" },
+                    suggested: { type: "string" }
+                },
+                required: ["type", "title", "description"]
             }
         }
     });
+
+    return (result || []).map((s, i) => ({
+        id: `ai-suggest-${i}-${Date.now()}`,
+        ...s
+    }));
 }
