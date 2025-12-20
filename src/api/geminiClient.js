@@ -10,13 +10,13 @@ export function isGeminiAvailable() {
  * General purpose function to invoke Gemini LLM
  */
 export async function invokeGeminiLLM({ prompt, response_json_schema }) {
-    if (!GEMINI_API_KEY) {
-        throw new Error('Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your .env file');
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+        throw new Error('Gemini API key is not configured. Please add a valid VITE_GEMINI_API_KEY to your .env file');
     }
 
     try {
         const fullPrompt = response_json_schema
-            ? `${prompt}\n\nReturn your response as a valid JSON object matching this schema: ${JSON.stringify(response_json_schema)}. Only return the JSON, nothing else.`
+            ? `${prompt}\n\nIMPORTANT: Return ONLY a valid JSON object matching this schema: ${JSON.stringify(response_json_schema)}. Do not include markdown formatting, code blocks, or any other text.`
             : prompt;
 
         const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
@@ -33,13 +33,18 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
                     topK: 1,
                     topP: 1,
                     maxOutputTokens: 2048,
-                    responseMimeType: response_json_schema ? "application/json" : "text/plain",
                 }
             })
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorText = await response.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+            }
             throw new Error(errorData.error?.message || `Gemini API request failed with status ${response.status}`);
         }
 
@@ -51,11 +56,14 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
         }
 
         if (response_json_schema) {
+            // More robust JSON extraction
             try {
-                return JSON.parse(content.replace(/```json\n?|```/g, '').trim());
+                const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+                const cleanedJson = jsonMatch ? jsonMatch[0] : content;
+                return JSON.parse(cleanedJson);
             } catch (e) {
                 console.error("Failed to parse Gemini JSON response:", content);
-                throw new Error("Failed to parse AI response as JSON");
+                throw new Error("The AI returned an invalid response format. Please try again.");
             }
         }
 
@@ -65,6 +73,7 @@ export async function invokeGeminiLLM({ prompt, response_json_schema }) {
         throw error;
     }
 }
+
 
 /**
  * Specifically for grammar checking to maintain compatibility with existing components
