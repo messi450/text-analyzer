@@ -4,9 +4,20 @@
 const AUTH_KEY = 'textalyzer_auth';
 const USERS_KEY = 'textalyzer_users';
 
-// Simple hash function that works in all environments
-// For production, consider using bcryptjs or similar
+/**
+ * Simple hash function that works in all environments
+ * NOTE: This is NOT cryptographically secure. For production apps with real user data,
+ * use a proper backend with bcrypt, Argon2, or similar.
+ * This is acceptable for local-only storage where security is not critical.
+ * 
+ * @param {string} str - String to hash
+ * @returns {string} Hashed string
+ */
 function simpleHash(str) {
+    if (!str || typeof str !== 'string') {
+        throw new Error('Invalid input for hashing');
+    }
+    
     let hash = 0;
     const salt = 'textalyzer_secure_salt_2024_v2';
     const input = str + salt;
@@ -36,8 +47,25 @@ function simpleHash(str) {
     return result;
 }
 
-// Hash password with fallback for non-secure contexts
+/**
+ * Hash password with Web Crypto API (SHA-256) or fallback
+ * 
+ * SECURITY NOTE: This uses SHA-256 which is fast but not ideal for password hashing.
+ * For production apps, use a proper backend with bcrypt, Argon2, or PBKDF2.
+ * This is acceptable for local-only storage.
+ * 
+ * @param {string} password - Password to hash
+ * @returns {Promise<string>} Hashed password
+ */
 async function hashPassword(password) {
+    if (!password || typeof password !== 'string') {
+        throw new Error('Password must be a non-empty string');
+    }
+    
+    if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+    }
+    
     const salt = 'textalyzer_salt_2024';
     const input = password + salt;
     
@@ -51,7 +79,7 @@ async function hashPassword(password) {
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         } catch (e) {
             // Fall through to simple hash
-            console.warn('Web Crypto API failed, using fallback hash');
+            console.warn('Web Crypto API failed, using fallback hash:', e);
         }
     }
     

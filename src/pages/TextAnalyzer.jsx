@@ -1,636 +1,55 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
+import { toast } from 'sonner';
+import {
+    Sparkles,
+    Trash2,
+    BarChart3,
+    Activity,
+    Sliders,
+    LogOut,
+    Eraser,
+    Sun,
+    Moon,
+    CheckCircle2,
+    Brain,
+    Loader2,
+    ChevronDown,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 import GrammarChecker from '@/components/text-analyzer/GrammarChecker';
 import AIWritingAssistant from '@/components/text-analyzer/AIWritingAssistant';
-import { checkGrammarGemini, generateSuggestionsGemini, isGeminiAvailable } from '@/api/geminiClient';
-
-
-import { motion } from 'framer-motion';
-
-import { Sparkles, Trash2, BarChart3, Wand2, ChevronDown, Activity, Sliders, LogOut, User, Eraser, Sun, Moon, CheckCircle2, Brain, Loader2 } from 'lucide-react';
-
-
-import { Button } from "@/components/ui/button";
-
-import { Helmet, HelmetProvider } from 'react-helmet-async';
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-
-import { toast } from "sonner";
-
 import TextInputWithHighlights from '@/components/text-analyzer/TextInputWithHighlights';
-
 import QuickFixSuggestions from '@/components/text-analyzer/QuickFixSuggestions';
-
 import StatsCards from '@/components/text-analyzer/StatsCards';
-
 import WordFrequencyTable from '@/components/text-analyzer/WordFrequencyTable';
-
 import StatsChart from '@/components/text-analyzer/StatsChart';
-
 import ResultsSummary from '@/components/text-analyzer/ResultsSummary';
-
-import ReadabilityPanel, { calculateReadability } from '@/components/text-analyzer/ReadabilityPanel';
-
-import SentimentPanel, { analyzeSentiment } from '@/components/text-analyzer/SentimentPanel';
-
-import KeywordsPanel, { extractKeywords } from '@/components/text-analyzer/KeywordsPanel';
-
-import ExportPanel, { calculateOverallScore } from '@/components/text-analyzer/ExportPanel';
-
+import ReadabilityPanel from '@/components/text-analyzer/ReadabilityPanel';
+import SentimentPanel from '@/components/text-analyzer/SentimentPanel';
+import KeywordsPanel from '@/components/text-analyzer/KeywordsPanel';
+import ExportPanel from '@/components/text-analyzer/ExportPanel';
 import HistoryPanel, { saveToLocalHistory } from '@/components/text-analyzer/HistoryPanel';
-
 import SaveAnalysisDialog from '@/components/text-analyzer/SaveAnalysisDialog';
-
 import SettingsPanel from '@/components/text-analyzer/SettingsPanel';
-
 import SentenceLengthChart from '@/components/text-analyzer/SentenceLengthChart';
-
 import ParagraphStructure from '@/components/text-analyzer/ParagraphStructure';
-
 import ReadingFlowHeatmap from '@/components/text-analyzer/ReadingFlowHeatmap';
-
 import ToneSlider from '@/components/text-analyzer/ToneSlider';
-
 import AuthDialog from '@/components/AuthDialog';
 
 import { authService } from '@/lib/auth';
-
 import { useTheme } from '@/components/ThemeProvider';
-
-// ============================================
-
-// Text Analysis Class
-
-// ============================================
-
-class TextAnalyzer {
-
-    constructor(text) {
-
-        this.text = text;
-
-    }
-
-    countTotalChars() {
-
-        return this.text.length;
-
-    }
-
-    countCharsNoSpaces() {
-
-        return this.text.replace(/\s/g, '').length;
-
-    }
-
-    countWords() {
-
-        return this.text
-
-            .replace(/[.,!?;:'"()\-\[\]{}]/g, '')
-
-            .split(/\s+/)
-
-            .filter(w => w.length > 0).length;
-
-    }
-
-    countSentences() {
-
-        return this.text
-
-            .split(/[.!?]+/)
-
-            .filter(s => s.trim().length > 0).length;
-
-    }
-
-    countParagraphs() {
-
-        const paragraphs = this.text
-
-            .split(/\n\s*\n/)
-
-            .filter(p => p.trim().length > 0);
-
-        return Math.max(paragraphs.length, this.text.trim().length > 0 ? 1 : 0);
-
-    }
-
-    getWordFrequency() {
-
-        const words = this.text
-
-            .toLowerCase()
-
-            .replace(/[.,!?;:'"()\-\[\]{}]/g, '')
-
-            .split(/\s+/)
-
-            .filter(w => w.length > 0);
-
-
-
-        return words.reduce((freq, word) => {
-
-            freq[word] = (freq[word] || 0) + 1;
-
-            return freq;
-
-        }, {});
-
-    }
-
-    getUniqueWordCount() {
-
-        return Object.keys(this.getWordFrequency()).length;
-
-    }
-
-    getAllStats() {
-
-        return {
-
-            totalChars: this.countTotalChars(),
-
-            totalCharsNoSpaces: this.countCharsNoSpaces(),
-
-            totalWords: this.countWords(),
-
-            totalSentences: this.countSentences(),
-
-            totalParagraphs: this.countParagraphs(),
-
-            uniqueWords: this.getUniqueWordCount(),
-
-        };
-
-    }
-
-}
-
-// ============================================
-
-// Constants
-
-// ============================================
-
-const SYNONYMS = {
-
-    'very': ['extremely', 'highly', 'remarkably', 'particularly'],
-
-    'really': ['truly', 'genuinely', 'certainly', 'definitely'],
-
-    'just': ['simply', 'merely', 'only', ''],
-
-    'actually': ['in fact', 'indeed', 'truly', ''],
-
-    'basically': ['essentially', 'fundamentally', 'primarily', ''],
-
-    'literally': ['actually', 'truly', 'precisely', ''],
-
-    'thing': ['item', 'object', 'matter', 'aspect'],
-
-    'things': ['items', 'aspects', 'elements', 'factors'],
-
-    'good': ['excellent', 'great', 'effective', 'beneficial'],
-
-    'bad': ['poor', 'negative', 'harmful', 'detrimental'],
-
-    'big': ['large', 'significant', 'substantial', 'considerable'],
-
-    'small': ['minor', 'slight', 'modest', 'limited'],
-
-    'get': ['obtain', 'acquire', 'receive', 'achieve'],
-
-    'got': ['obtained', 'acquired', 'received', 'achieved'],
-
-    'make': ['create', 'produce', 'develop', 'establish'],
-
-    'made': ['created', 'produced', 'developed', 'established'],
-
-};
-
-const DEFAULT_PREFERENCES = {
-
-    theme: 'light',
-
-    default_writing_style: 'casual',
-
-    default_language: 'en',
-
-    show_suggestions: true,
-
-    auto_analyze: true,
-
-    font_size: 'medium',
-
-};
-
-const BREAK_WORDS = ['and', 'but', 'or', 'so', 'because', 'which', 'that', 'while', 'although'];
-
-// ============================================
-
-// Suggestion Generation Utilities
-
-// ============================================
-
-function checkLongSentences(text) {
-
-    const suggestions = [];
-
-    const sentenceMatches = [...text.matchAll(/[^.!?]+[.!?]+/g)];
-
-    sentenceMatches.forEach((match) => {
-
-        const sentence = match[0];
-
-        const words = sentence.split(/\s+/).filter(w => w.length > 0);
-
-        if (words.length > 25) {
-
-            const midPoint = Math.floor(words.length / 2);
-
-            let breakIndex = midPoint;
-
-            for (let j = midPoint - 5; j <= midPoint + 5 && j < words.length; j++) {
-
-                if (j > 0 && BREAK_WORDS.includes(words[j].toLowerCase().replace(/,/g, ''))) {
-
-                    breakIndex = j;
-
-                    break;
-
-                }
-
-            }
-
-            const firstPart = words.slice(0, breakIndex).join(' ');
-
-            const secondPart = words.slice(breakIndex).join(' ');
-
-            const suggestedText =
-
-                firstPart.trim().replace(/,?\s*$/, '.') + ' ' +
-
-                secondPart.trim().charAt(0).toUpperCase() + secondPart.trim().slice(1);
-
-            suggestions.push({
-
-                id: `long-${match.index}`,
-
-                type: 'clarity',
-
-                severity: 'medium',
-
-                title: 'Long sentence detected',
-
-                description: `This sentence has ${words.length} words. Click to split into shorter sentences.`,
-
-                original: sentence.trim(),
-
-                suggested: suggestedText,
-
-                start: match.index,
-
-                end: match.index + sentence.length,
-
-            });
-
-        }
-
-    });
-
-    return suggestions;
-
-}
-
-function checkPassiveVoice(text) {
-
-    const suggestions = [];
-
-    const passivePatterns = [
-
-        { regex: /\b(was|were)\s+(\w+ed)\b/gi },
-
-        { regex: /\b(is|are)\s+being\s+(\w+ed)\b/gi },
-
-        { regex: /\b(has|have)\s+been\s+(\w+ed)\b/gi },
-
-    ];
-
-    passivePatterns.forEach(pattern => {
-
-        let match;
-
-        while ((match = pattern.regex.exec(text)) !== null) {
-
-            suggestions.push({
-
-                id: `passive-${match.index}`,
-
-                type: 'style',
-
-                severity: 'low',
-
-                title: 'Possible passive voice',
-
-                description: 'Active voice is often clearer. Click to see suggestion.',
-
-                original: match[0],
-
-                suggested: `[active form of "${match[0]}"]`,
-
-                start: match.index,
-
-                end: match.index + match[0].length,
-
-            });
-
-        }
-
-    });
-
-    return suggestions;
-
-}
-
-function checkFillerWords(text) {
-
-    const suggestions = [];
-
-    const fillers = ['very', 'really', 'just', 'actually', 'basically', 'literally'];
-
-    fillers.forEach(filler => {
-
-        const regex = new RegExp(`\\b${filler}\\b`, 'gi');
-
-        let match;
-
-        while ((match = regex.exec(text)) !== null) {
-
-            const synonyms = SYNONYMS[filler.toLowerCase()] || [''];
-
-            const suggested = synonyms[0] || '';
-
-            suggestions.push({
-
-                id: `filler-${match.index}`,
-
-                type: 'style',
-
-                severity: 'low',
-
-                title: `Filler word: "${filler}"`,
-
-                description: suggested
-
-                    ? `Replace with "${suggested}" for stronger writing.`
-
-                    : 'This word weakens your writing. Click to remove it.',
-
-                original: match[0],
-
-                suggested: suggested,
-
-                start: match.index,
-
-                end: match.index + match[0].length,
-
-            });
-
-        }
-
-    });
-
-    return suggestions;
-
-}
-
-function checkWeakWords(text) {
-
-    const suggestions = [];
-
-    const weakWords = ['thing', 'things', 'good', 'bad', 'big', 'small', 'get', 'got', 'make', 'made'];
-
-    weakWords.forEach(word => {
-
-        const regex = new RegExp(`\\b${word}\\b`, 'gi');
-
-        let match;
-
-        while ((match = regex.exec(text)) !== null) {
-
-            const synonyms = SYNONYMS[word.toLowerCase()];
-
-            if (synonyms && synonyms.length > 0) {
-
-                let suggested = synonyms[0];
-
-                if (match[0][0] === match[0][0].toUpperCase()) {
-
-                    suggested = suggested.charAt(0).toUpperCase() + suggested.slice(1);
-
-                }
-
-                suggestions.push({
-
-                    id: `weak-${match.index}`,
-
-                    type: 'style',
-
-                    severity: 'low',
-
-                    title: `Weak word: "${match[0]}"`,
-
-                    description: `Consider using "${suggested}" for more precise writing.`,
-
-                    original: match[0],
-
-                    suggested: suggested,
-
-                    start: match.index,
-
-                    end: match.index + match[0].length,
-
-                });
-
-            }
-
-        }
-
-    });
-
-    return suggestions;
-
-}
-
-function checkRepeatedWords(text) {
-
-    const suggestions = [];
-
-    const wordPositions = {};
-
-    const wordRegex = /\b\w{5,}\b/g;
-
-    let match;
-
-    while ((match = wordRegex.exec(text.toLowerCase())) !== null) {
-
-        const word = match[0];
-
-        if (!wordPositions[word]) wordPositions[word] = [];
-
-        wordPositions[word].push({ index: match.index, length: match[0].length });
-
-    }
-
-    Object.entries(wordPositions).forEach(([word, positions]) => {
-
-        if (positions.length >= 3 && positions.length <= 6) {
-
-            for (let i = 1; i < positions.length; i++) {
-
-                if (positions[i].index - positions[i - 1].index < 200) {
-
-                    const synonyms = SYNONYMS[word] || [];
-
-                    if (synonyms.length > 0) {
-
-                        suggestions.push({
-
-                            id: `repeated-${positions[i].index}`,
-
-                            type: 'style',
-
-                            severity: 'low',
-
-                            title: `Repeated word: "${word}"`,
-
-                            description: `This word appears multiple times nearby. Try "${synonyms[0]}".`,
-
-                            original: text.slice(positions[i].index, positions[i].index + positions[i].length),
-
-                            suggested: synonyms[0],
-
-                            start: positions[i].index,
-
-                            end: positions[i].index + positions[i].length,
-
-                        });
-
-                    }
-
-                    break;
-
-                }
-
-            }
-
-        }
-
-    });
-
-    return suggestions;
-
-}
-
-function checkSpacing(text) {
-
-    const suggestions = [];
-
-    const doubleSpaceRegex = /  +/g;
-
-    let match;
-
-    while ((match = doubleSpaceRegex.exec(text)) !== null) {
-
-        suggestions.push({
-
-            id: `space-${match.index}`,
-
-            type: 'grammar',
-
-            severity: 'low',
-
-            title: 'Extra spaces',
-
-            description: 'Multiple spaces detected. Click to fix.',
-
-            original: match[0],
-
-            suggested: ' ',
-
-            start: match.index,
-
-            end: match.index + match[0].length,
-
-        });
-
-    }
-
-    const missingSpaceRegex = /[.!?,;:][A-Za-z]/g;
-
-    while ((match = missingSpaceRegex.exec(text)) !== null) {
-
-        suggestions.push({
-
-            id: `mspace-${match.index}`,
-
-            type: 'grammar',
-
-            severity: 'medium',
-
-            title: 'Missing space after punctuation',
-
-            description: 'Add a space after punctuation marks.',
-
-            original: match[0],
-
-            suggested: match[0][0] + ' ' + match[0][1],
-
-            start: match.index,
-
-            end: match.index + match[0].length,
-
-        });
-
-    }
-
-    return suggestions;
-
-}
-
-function generateLocalSuggestions(text, stats) {
-
-    if (!text || stats.totalWords === 0) return [];
-
-    const suggestions = [
-
-        ...checkLongSentences(text),
-
-        ...checkPassiveVoice(text),
-
-        ...checkFillerWords(text),
-
-        ...checkWeakWords(text),
-
-        ...checkRepeatedWords(text),
-
-        ...checkSpacing(text),
-
-    ];
-
-    return suggestions
-
-        .sort((a, b) => (a.start || 0) - (b.start || 0))
-
-        .slice(0, 20);
-
-}
+import { useTextAnalysis } from '@/hooks/useTextAnalysis';
+import { useTextFixes } from '@/hooks/useTextFixes';
+import { useAISuggestions } from '@/hooks/useAISuggestions';
+import { calculateReadingTime } from '@/utils/textAnalyzer';
+import { DEFAULT_PREFERENCES } from '@/utils/constants';
 
 // ============================================
 
@@ -689,85 +108,26 @@ function TextAnalyzerPageContent() {
 
     }, []);
 
-    const analysisData = useMemo(() => {
+    // Use custom hooks for analysis and AI suggestions
+    // Note: We need to get stats first, then use them for AI suggestions
+    const tempAnalysis = useTextAnalysis(text, writingStyle, []);
+    const { stats } = tempAnalysis;
+    
+    const { aiSuggestions, isFetchingAiSuggestions, fetchAiSuggestions } = useAISuggestions(text, stats, writingStyle);
+    const analysisData = useTextAnalysis(text, writingStyle, aiSuggestions);
+    const { wordFrequency, readability, sentiment, keywords, localSuggestions, overallScore } = analysisData;
+    const { applyFix, applyAllFixes, applySuggestion, applyGrammarFix } = useTextFixes(text, setText);
 
-        if (!text.trim()) {
-
-            return {
-
-                stats: { totalChars: 0, totalCharsNoSpaces: 0, totalWords: 0, totalSentences: 0, totalParagraphs: 0, uniqueWords: 0 },
-
-                wordFrequency: {},
-
-                readability: null,
-
-                sentiment: null,
-
-                keywords: [],
-
-                localSuggestions: [],
-
-                overallScore: 0,
-
-            };
-
-        }
-
-        const analyzer = new TextAnalyzer(text);
-
-        const stats = analyzer.getAllStats();
-
-        const wordFrequency = analyzer.getWordFrequency();
-
-        const readabilityData = calculateReadability(text, stats);
-
-        const sentimentData = analyzeSentiment(text);
-
-        const suggestions = generateLocalSuggestions(text, stats);
-
-        const scoreResult = calculateOverallScore(stats, readabilityData, sentimentData, suggestions);
-
-        const score = typeof scoreResult === 'object' ? scoreResult.score : scoreResult;
-
-        return {
-
-            stats,
-
-            wordFrequency,
-
-            readability: readabilityData,
-
-            sentiment: sentimentData,
-
-            keywords: extractKeywords(text, wordFrequency),
-
-            localSuggestions: [...suggestions, ...aiSuggestions],
-
-            overallScore: score,
-
-        };
-
-    }, [text, writingStyle, aiSuggestions]);
-
-
-    const { stats, wordFrequency, readability, sentiment, keywords, localSuggestions, overallScore } = analysisData;
-
-    const handleClear = useCallback(() => setText(''), []);
+    const handleClear = useCallback(() => setText(''), [setText]);
 
     const handleAuthChange = useCallback((newUser) => {
-
         setUser(newUser);
-
     }, []);
 
     const handleLogout = useCallback(() => {
-
         authService.logout();
-
         setUser(null);
-
         toast.success('Logged out successfully');
-
     }, []);
 
     const handleSaveAnalysis = useCallback(async (title) => {
@@ -818,49 +178,6 @@ function TextAnalyzerPageContent() {
 
     }, [text, stats, wordFrequency, readability, sentiment, keywords, writingStyle, language]);
 
-    const fetchAiSuggestions = useCallback(async () => {
-        if (!text || text.trim().length < 20) {
-            toast.error('Please enter more text to get AI suggestions');
-            return;
-        }
-
-        if (!isGeminiAvailable()) {
-            toast.error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file');
-            return;
-        }
-
-        setIsFetchingAiSuggestions(true);
-        try {
-            const suggestions = await generateSuggestionsGemini(text, stats, writingStyle);
-
-            // Assign IDs and try to find positions for AI suggestions
-            const formatted = (suggestions || []).map((s, i) => {
-                let start, end;
-                if (s.original) {
-                    const index = text.indexOf(s.original);
-                    if (index !== -1) {
-                        start = index;
-                        end = index + s.original.length;
-                    }
-                }
-
-                return {
-                    id: `ai-suggest-${i}-${Date.now()}`,
-                    ...s,
-                    start,
-                    end
-                };
-            });
-
-            setAiSuggestions(formatted);
-            toast.success(`Found ${formatted.length} AI suggestions`);
-        } catch (error) {
-            console.error('AI Suggestions error:', error);
-            toast.error('Failed to fetch AI suggestions. ' + (error.message || ''));
-        } finally {
-            setIsFetchingAiSuggestions(false);
-        }
-    }, [text, stats, writingStyle]);
 
 
 
@@ -890,64 +207,9 @@ function TextAnalyzerPageContent() {
 
     }, []);
 
-    const handleApplyFix = useCallback((issue) => {
-        if (issue.suggested !== undefined && issue.start !== undefined && issue.end !== undefined) {
-            const newText = text.slice(0, issue.start) + issue.suggested + text.slice(issue.end);
-            setText(newText);
-            toast.success('Fix applied');
-        } else if (issue.original && issue.suggested) {
-            // Fallback for issues without offsets
-            const newText = text.replace(issue.original, issue.suggested);
-            setText(newText);
-            toast.success('Fix applied');
-        }
-    }, [text]);
-
-    const handleApplyAllFixes = useCallback((sortedFixes) => {
-        let newText = text;
-        // Apply from end to start to avoid shifting indices
-        for (const issue of sortedFixes) {
-            if (issue.suggested !== undefined && issue.start !== undefined && issue.end !== undefined) {
-                newText = newText.slice(0, issue.start) + issue.suggested + newText.slice(issue.end);
-            }
-        }
-        setText(newText);
-        toast.success(`Applied ${sortedFixes.length} fixes`);
-    }, [text]);
-
-    const handleApplySuggestion = useCallback((suggestion) => {
-        if (suggestion && suggestion.suggested && suggestion.original) {
-            const position = text.indexOf(suggestion.original);
-            if (position !== -1) {
-                const newText = text.slice(0, position) + suggestion.suggested + text.slice(position + suggestion.original.length);
-                setText(newText);
-            } else {
-                const newText = text.replace(suggestion.original, suggestion.suggested);
-                setText(newText);
-            }
-            toast.success('Suggestion applied');
-        }
-    }, [text]);
-
-    const handleApplyGrammarFix = useCallback((original, suggested, index) => {
-        // Try to find the exact occurrence if possible
-        const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        const matches = [...text.matchAll(regex)];
-
-        // If we have multiple matches and an index, we might try to be smart, 
-        // but for now, we'll just replace the first one that makes sense
-        if (matches.length > 0) {
-            const match = matches[0]; // Simplified
-            const newText = text.slice(0, match.index) + suggested + text.slice(match.index + original.length);
-            setText(newText);
-            toast.success('Grammar fix applied');
-        } else {
-            toast.error('Could not find text to replace. It might have already been modified.');
-        }
-    }, [text]);
 
 
-    const readingTime = Math.max(1, Math.ceil(stats.totalWords / 200));
+    const readingTime = calculateReadingTime(stats.totalWords);
 
     const isAuthenticated = !!user;
 
@@ -1193,8 +455,8 @@ function TextAnalyzerPageContent() {
                                         </div>
                                         <QuickFixSuggestions
                                             suggestions={localSuggestions}
-                                            onApplyFix={handleApplyFix}
-                                            onApplyAllFixes={handleApplyAllFixes}
+                                            onApplyFix={applyFix}
+                                            onApplyAllFixes={applyAllFixes}
                                         />
 
                                     </TabsContent>
@@ -1254,14 +516,14 @@ function TextAnalyzerPageContent() {
                                         <AIWritingAssistant
                                             text={text}
                                             writingStyle={writingStyle}
-                                            onApplySuggestion={handleApplySuggestion}
+                                            onApplySuggestion={applySuggestion}
                                         />
                                     </TabsContent>
 
                                     <TabsContent value="grammar" className="mt-0">
                                         <GrammarChecker
                                             text={text}
-                                            onApplyFix={handleApplyGrammarFix}
+                                            onApplyFix={applyGrammarFix}
                                         />
                                     </TabsContent>
 

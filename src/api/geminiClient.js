@@ -1,87 +1,110 @@
-// Gemini API Client for Text Analysis
+/**
+ * Gemini API Client for Text Analysis
+ * Handles all interactions with Google's Gemini API
+ */
+
+import { safeAsync } from '@/utils/errorHandler';
+
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
+/**
+ * Check if Gemini API is available and configured
+ * @returns {boolean} True if API key is configured
+ */
 export function isGeminiAvailable() {
-    return !!GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE';
+    return !!GEMINI_API_KEY && 
+           GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE' &&
+           GEMINI_API_KEY.trim().length > 0;
 }
 
 /**
  * General purpose function to invoke Gemini LLM with timeout and robust JSON parsing
+ * @param {Object} options - Function options
+ * @param {string} options.prompt - Prompt to send to Gemini
+ * @param {Object} options.response_json_schema - Optional JSON schema for structured response
+ * @param {number} options.timeout - Request timeout in ms (default: 30000)
+ * @returns {Promise<any>} Response from Gemini API
  */
-export async function invokeGeminiLLM({ prompt, response_json_schema, timeout = 30000 }) {
+export async function invokeGeminiLLM({ prompt, response_json_schema, timeout = DEFAULT_TIMEOUT }) {
     if (!isGeminiAvailable()) {
         throw new Error('Gemini API key is not configured. Please add a valid VITE_GEMINI_API_KEY to your .env file');
     }
 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-
-    try {
-        const fullPrompt = response_json_schema
-            ? `${prompt}\n\nIMPORTANT: Return ONLY a valid JSON object matching this schema: ${JSON.stringify(response_json_schema)}. Do not include markdown formatting, code blocks, or any other text.`
-            : prompt;
-
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            signal: controller.signal,
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: fullPrompt }]
-                }],
-                generationConfig: {
-                    temperature: 0.1,
-                    topK: 1,
-                    topP: 1,
-                    maxOutputTokens: 2048,
-                }
-            })
-        });
-
-        clearTimeout(id);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            let errorData;
-            try {
-                errorData = JSON.parse(errorText);
-            } catch (e) {
-                throw new Error(`Gemini API error (${response.status}): ${errorText.substring(0, 100)}`);
-            }
-            throw new Error(errorData.error?.message || `Gemini API request failed with status ${response.status}`);
-        }
-
-        const data = await response.json();
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!content) {
-            throw new Error('No content received from Gemini API');
-        }
-
-        if (response_json_schema) {
-            try {
-                // More robust JSON extraction (extracts {} or [])
-                const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-                const cleanedJson = jsonMatch ? jsonMatch[0] : content;
-                return JSON.parse(cleanedJson);
-            } catch (e) {
-                console.error("Failed to parse Gemini JSON response:", content);
-                throw new Error("The AI returned an invalid response format. Please try again.");
-            }
-        }
-
-        return content;
-    } catch (error) {
-        clearTimeout(id);
-        if (error.name === 'AbortError') {
-            throw new Error('Request timed out. The AI is taking too long to respond. Please try again.');
-        }
-        console.error('Gemini API Error:', error);
-        throw error;
+    if (!prompt || typeof prompt !== 'string') {
+        throw new Error('Prompt must be a non-empty string');
     }
+
+    return safeAsync(async () => {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+
+        try {
+            const fullPrompt = response_json_schema
+                ? `${prompt}\n\nIMPORTANT: Return ONLY a valid JSON object matching this schema: ${JSON.stringify(response_json_schema)}. Do not include markdown formatting, code blocks, or any other text.`
+                : prompt;
+
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: fullPrompt }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.1,
+                        topK: 1,
+                        topP: 1,
+                        maxOutputTokens: 2048,
+                    }
+                })
+            });
+
+            clearTimeout(id);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    throw new Error(`Gemini API error (${response.status}): ${errorText.substring(0, 100)}`);
+                }
+                throw new Error(errorData.error?.message || `Gemini API request failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (!content) {
+                throw new Error('No content received from Gemini API');
+            }
+
+            if (response_json_schema) {
+                try {
+                    // More robust JSON extraction (extracts {} or [])
+                    const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+                    const cleanedJson = jsonMatch ? jsonMatch[0] : content;
+                    return JSON.parse(cleanedJson);
+                } catch (e) {
+                    console.error("Failed to parse Gemini JSON response:", content);
+                    throw new Error("The AI returned an invalid response format. Please try again.");
+                }
+            }
+
+            return content;
+        } catch (error) {
+            clearTimeout(id);
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out. The AI is taking too long to respond. Please try again.');
+            }
+            throw error;
+        }
+    }, 'Gemini API call');
 }
 
 /**
