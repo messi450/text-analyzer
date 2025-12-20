@@ -5,29 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Copy, Check, RefreshCw, ArrowRight, Lightbulb, Target, Zap, Palette } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { invokeGeminiLLM, isGeminiAvailable } from '@/api/geminiClient';
+
 import { adjustTone, adjustToneAdvanced, detectTone, generateAISuggestions, getToneOptions } from '@/utils/toneAdjuster';
 import { toast } from "sonner";
 
 const TONE_CONFIG = {
-  formality: {
-    labels: ['Very Casual', 'Casual', 'Neutral', 'Formal', 'Very Formal'],
-    emojis: ['😊', '🙂', '😐', '👔', '🎩'],
-    icon: Target,
-    color: 'blue'
-  },
-  emotion: {
-    labels: ['Reserved', 'Neutral', 'Enthusiastic', 'Passionate', 'Urgent'],
-    emojis: ['😐', '😌', '😃', '❤️', '⚡'],
-    icon: Zap,
-    color: 'red'
-  },
-  style: {
-    labels: ['Concise', 'Balanced', 'Elaborate', 'Persuasive', 'Inspirational'],
-    emojis: ['📝', '⚖️', '📖', '🎯', '✨'],
-    icon: Palette,
-    color: 'purple'
-  }
+    formality: {
+        labels: ['Very Casual', 'Casual', 'Neutral', 'Formal', 'Very Formal'],
+        emojis: ['😊', '🙂', '😐', '👔', '🎩'],
+        icon: Target,
+        color: 'blue'
+    },
+    emotion: {
+        labels: ['Reserved', 'Neutral', 'Enthusiastic', 'Passionate', 'Urgent'],
+        emojis: ['😐', '😌', '😃', '❤️', '⚡'],
+        icon: Zap,
+        color: 'red'
+    },
+    style: {
+        labels: ['Concise', 'Balanced', 'Elaborate', 'Persuasive', 'Inspirational'],
+        emojis: ['📝', '⚖️', '📖', '🎯', '✨'],
+        icon: Palette,
+        color: 'purple'
+    }
 };
 
 export default function ToneSlider({ text, onApply }) {
@@ -85,11 +86,17 @@ export default function ToneSlider({ text, onApply }) {
         } catch (localError) {
             console.warn('Local tone adjustment failed, trying API fallback:', localError);
 
+            if (!isGeminiAvailable()) {
+                toast.error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file');
+                setIsProcessing(false);
+                return;
+            }
+
             // Fallback to API if local adjustment fails
             try {
                 const config = TONE_CONFIG[activeCategory];
                 const targetTone = config.labels[toneLevels[activeCategory]];
-                const response = await base44.integrations.Core.InvokeLLM({
+                const response = await invokeGeminiLLM({
                     prompt: `Rewrite the following text to have a ${targetTone.toLowerCase()} ${activeCategory} tone. Keep the same meaning but adjust the language, word choice, and style to match the desired tone level.
 
 Original text:
@@ -99,7 +106,8 @@ Consider the context and provide a natural, effective transformation. Focus on $
                 });
 
                 setResult(response);
-                toast.success('Tone adjusted via AI');
+                toast.success('Tone adjusted via Gemini AI');
+
             } catch (apiError) {
                 console.error('API fallback also failed:', apiError);
                 toast.error('Failed to adjust tone - please check your connection');
@@ -188,8 +196,8 @@ Consider the context and provide a natural, effective transformation. Focus on $
                                     const isSelected = i === toneLevels[category];
                                     const colorClass = isSelected
                                         ? (config.color === 'blue' ? 'text-blue-600' :
-                                           config.color === 'red' ? 'text-red-600' :
-                                           config.color === 'purple' ? 'text-purple-600' : 'text-slate-600')
+                                            config.color === 'red' ? 'text-red-600' :
+                                                config.color === 'purple' ? 'text-purple-600' : 'text-slate-600')
                                         : '';
                                     return (
                                         <span

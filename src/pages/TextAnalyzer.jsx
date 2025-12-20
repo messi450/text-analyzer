@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
 import GrammarChecker from '@/components/text-analyzer/GrammarChecker';
 import AIWritingAssistant from '@/components/text-analyzer/AIWritingAssistant';
+import { checkGrammarGemini, generateSuggestionsGemini, isGeminiAvailable } from '@/api/geminiClient';
+
 
 import { motion } from 'framer-motion';
 
@@ -654,6 +656,9 @@ function TextAnalyzerPageContent() {
     const [metricsOpen, setMetricsOpen] = useState(false);
 
     const [user, setUser] = useState(null);
+    const [aiSuggestions, setAiSuggestions] = useState([]);
+    const [isFetchingAiSuggestions, setIsFetchingAiSuggestions] = useState(false);
+
 
     useEffect(() => {
 
@@ -735,13 +740,14 @@ function TextAnalyzerPageContent() {
 
             keywords: extractKeywords(text, wordFrequency),
 
-            localSuggestions: suggestions,
+            localSuggestions: [...suggestions, ...aiSuggestions],
 
             overallScore: score,
 
         };
 
-    }, [text, writingStyle]);
+    }, [text, writingStyle, aiSuggestions]);
+
 
     const { stats, wordFrequency, readability, sentiment, keywords, localSuggestions, overallScore } = analysisData;
 
@@ -810,6 +816,36 @@ function TextAnalyzerPageContent() {
         }
 
     }, [text, stats, wordFrequency, readability, sentiment, keywords, writingStyle, language]);
+
+    const fetchAiSuggestions = useCallback(async () => {
+        if (!text || text.trim().length < 20) {
+            toast.error('Please enter more text to get AI suggestions');
+            return;
+        }
+
+        if (!isGeminiAvailable()) {
+            toast.error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file');
+            return;
+        }
+
+        setIsFetchingAiSuggestions(true);
+        try {
+            const suggestions = await generateSuggestionsGemini(text, stats, writingStyle);
+            // Assign IDs to AI suggestions
+            const formatted = suggestions.map((s, i) => ({
+                id: `ai-suggest-${i}-${Date.now()}`,
+                ...s
+            }));
+            setAiSuggestions(formatted);
+            toast.success(`Found ${formatted.length} AI suggestions`);
+        } catch (error) {
+            console.error('AI Suggestions error:', error);
+            toast.error('Failed to fetch AI suggestions');
+        } finally {
+            setIsFetchingAiSuggestions(false);
+        }
+    }, [text, stats, writingStyle]);
+
 
     const handleLoadAnalysis = useCallback((analysis) => {
 
@@ -1124,11 +1160,30 @@ function TextAnalyzerPageContent() {
 
                                 <div className="p-4 min-h-[400px] max-h-[600px] overflow-y-auto custom-scrollbar">
 
-                                    <TabsContent value="suggestions" className="mt-0">
-
-                                        <QuickFixSuggestions suggestions={localSuggestions} onApplyFix={handleApplyFix} onApplyAllFixes={handleApplyAllFixes} />
+                                    <TabsContent value="suggestions" className="mt-0 space-y-4">
+                                        <div className="flex justify-center pt-2">
+                                            <Button
+                                                onClick={fetchAiSuggestions}
+                                                disabled={isFetchingAiSuggestions || !text}
+                                                variant="outline"
+                                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 border-none shadow-md"
+                                            >
+                                                {isFetchingAiSuggestions ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Sparkles className="w-4 h-4 mr-2" />
+                                                )}
+                                                {isFetchingAiSuggestions ? 'Fetching AI Suggestions...' : 'Get AI-Powered Suggestions'}
+                                            </Button>
+                                        </div>
+                                        <QuickFixSuggestions
+                                            suggestions={localSuggestions}
+                                            onApplyFix={handleApplyFix}
+                                            onApplyAllFixes={handleApplyAllFixes}
+                                        />
 
                                     </TabsContent>
+
 
                                     <TabsContent value="rewrite" className="mt-0 space-y-4">
 

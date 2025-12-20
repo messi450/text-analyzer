@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, Loader2, Zap } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { checkGrammar, isOpenAIAvailable } from '@/api/openaiClient';
+import { checkGrammarGemini, isGeminiAvailable } from '@/api/geminiClient';
+
 import { toast } from "sonner";
 
 export default function GrammarChecker({ text, onApplyFix }) {
@@ -17,17 +18,17 @@ export default function GrammarChecker({ text, onApplyFix }) {
       return;
     }
 
-    if (!isOpenAIAvailable()) {
-      toast.error('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your .env file');
+    if (!isGeminiAvailable()) {
+      toast.error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file');
       return;
     }
 
     setIsChecking(true);
     try {
-      const grammarErrors = await checkGrammar(text);
+      const grammarErrors = await checkGrammarGemini(text);
       setErrors(grammarErrors);
       setHasChecked(true);
-      
+
       if (grammarErrors.length === 0) {
         toast.success('No grammar errors found!');
       } else {
@@ -54,7 +55,7 @@ export default function GrammarChecker({ text, onApplyFix }) {
           <CheckCircle2 className="w-5 h-5 text-green-500" />
           Grammar Checker
         </h3>
-        <Button 
+        <Button
           onClick={handleGrammarCheck}
           disabled={isChecking}
           className="flex items-center gap-2"
@@ -103,7 +104,7 @@ export default function GrammarChecker({ text, onApplyFix }) {
                         </Badge>
                         <span className="font-medium text-red-700">{error.title}</span>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="text-red-600 line-through">"{error.original}"</span>
@@ -114,9 +115,9 @@ export default function GrammarChecker({ text, onApplyFix }) {
                         <p className="text-gray-600 italic">{error.explanation}</p>
                       </div>
                     </div>
-                    
-                    <Button 
-                      size="sm" 
+
+                    <Button
+                      size="sm"
                       onClick={() => handleApplyFix(error, index)}
                       className="flex-shrink-0"
                     >

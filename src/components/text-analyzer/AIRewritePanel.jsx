@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    PenLine, 
-    Loader2, 
-    Copy, 
-    Check, 
+import {
+    PenLine,
+    Loader2,
+    Copy,
+    Check,
     RefreshCw,
     Minimize2,
     Maximize2,
@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { base44 } from '@/api/base44Client';
+import { invokeGeminiLLM, isGeminiAvailable } from '@/api/geminiClient';
+
 import { toast } from "sonner";
 
 const REWRITE_MODES = [
@@ -48,10 +49,16 @@ export default function AIRewritePanel({ text, selectedText, onApplyRewrite }) {
 
         setIsRewriting(true);
 
+        if (!isGeminiAvailable()) {
+            toast.error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file');
+            setIsRewriting(false);
+            return;
+        }
+
         try {
             const modeConfig = REWRITE_MODES.find(m => m.id === selectedMode);
-            
-            const response = await base44.integrations.Core.InvokeLLM({
+
+            const response = await invokeGeminiLLM({
                 prompt: `You are an expert writing editor. Rewrite the following text according to the specified style.
 
 REWRITE MODE: ${modeConfig.label} - ${modeConfig.description}
@@ -84,17 +91,17 @@ Provide your rewrite in the following JSON structure:
 }
 
 Guidelines for "${selectedMode}" mode:
-${selectedMode === 'concise' ? 
-    '- Remove redundant words and phrases\n- Use active voice\n- Eliminate filler words\n- Combine sentences where possible\n- Keep the core meaning intact' :
-selectedMode === 'expand' ? 
-    '- Add relevant details and examples\n- Elaborate on key points\n- Include transitional phrases\n- Maintain coherence while adding depth' :
-selectedMode === 'formal' ? 
-    '- Use professional vocabulary\n- Avoid contractions\n- Use third person where appropriate\n- Maintain objective tone\n- Use proper business/academic language' :
-selectedMode === 'casual' ? 
-    '- Use conversational language\n- Include contractions\n- Add friendly expressions\n- Make it approachable and warm\n- Keep it engaging' :
-selectedMode === 'academic' ? 
-    '- Use scholarly vocabulary\n- Include hedging language where appropriate\n- Maintain objective stance\n- Use formal structures\n- Cite-ready format' :
-    '- Use vivid language and imagery\n- Add engaging hooks\n- Vary sentence structure\n- Include rhetorical devices\n- Make it memorable'}
+${selectedMode === 'concise' ?
+                        '- Remove redundant words and phrases\n- Use active voice\n- Eliminate filler words\n- Combine sentences where possible\n- Keep the core meaning intact' :
+                        selectedMode === 'expand' ?
+                            '- Add relevant details and examples\n- Elaborate on key points\n- Include transitional phrases\n- Maintain coherence while adding depth' :
+                            selectedMode === 'formal' ?
+                                '- Use professional vocabulary\n- Avoid contractions\n- Use third person where appropriate\n- Maintain objective tone\n- Use proper business/academic language' :
+                                selectedMode === 'casual' ?
+                                    '- Use conversational language\n- Include contractions\n- Add friendly expressions\n- Make it approachable and warm\n- Keep it engaging' :
+                                    selectedMode === 'academic' ?
+                                        '- Use scholarly vocabulary\n- Include hedging language where appropriate\n- Maintain objective stance\n- Use formal structures\n- Cite-ready format' :
+                                        '- Use vivid language and imagery\n- Add engaging hooks\n- Vary sentence structure\n- Include rhetorical devices\n- Make it memorable'}
 
 Ensure the rewritten text:
 1. Preserves the original meaning
@@ -182,18 +189,15 @@ Ensure the rewritten text:
                                 <button
                                     key={mode.id}
                                     onClick={() => setSelectedMode(mode.id)}
-                                    className={`p-3 rounded-xl border-2 transition-all text-left ${
-                                        selectedMode === mode.id 
-                                            ? 'border-emerald-500 bg-emerald-50' 
-                                            : 'border-slate-100 hover:border-slate-200 bg-white'
-                                    }`}
+                                    className={`p-3 rounded-xl border-2 transition-all text-left ${selectedMode === mode.id
+                                        ? 'border-emerald-500 bg-emerald-50'
+                                        : 'border-slate-100 hover:border-slate-200 bg-white'
+                                        }`}
                                 >
-                                    <Icon className={`w-4 h-4 mb-1 ${
-                                        selectedMode === mode.id ? 'text-emerald-600' : 'text-slate-400'
-                                    }`} />
-                                    <p className={`text-xs font-medium ${
-                                        selectedMode === mode.id ? 'text-emerald-700' : 'text-slate-700'
-                                    }`}>{mode.label}</p>
+                                    <Icon className={`w-4 h-4 mb-1 ${selectedMode === mode.id ? 'text-emerald-600' : 'text-slate-400'
+                                        }`} />
+                                    <p className={`text-xs font-medium ${selectedMode === mode.id ? 'text-emerald-700' : 'text-slate-700'
+                                        }`}>{mode.label}</p>
                                     <p className="text-xs text-slate-400">{mode.description}</p>
                                 </button>
                             );
@@ -262,18 +266,17 @@ Ensure the rewritten text:
                                     </p>
                                     <p className="text-xs text-slate-500">Rewritten</p>
                                 </div>
-                                <Badge variant="outline" className={`ml-2 ${
-                                    (rewriteResults.word_count_comparison?.rewritten || 0) < 
+                                <Badge variant="outline" className={`ml-2 ${(rewriteResults.word_count_comparison?.rewritten || 0) <
                                     (rewriteResults.word_count_comparison?.original || 0)
-                                        ? 'text-emerald-600 border-emerald-200'
-                                        : 'text-blue-600 border-blue-200'
-                                }`}>
+                                    ? 'text-emerald-600 border-emerald-200'
+                                    : 'text-blue-600 border-blue-200'
+                                    }`}>
                                     {Math.abs(
-                                        ((rewriteResults.word_count_comparison?.rewritten || 0) - 
-                                        (rewriteResults.word_count_comparison?.original || 0))
+                                        ((rewriteResults.word_count_comparison?.rewritten || 0) -
+                                            (rewriteResults.word_count_comparison?.original || 0))
                                     )} words {
-                                        (rewriteResults.word_count_comparison?.rewritten || 0) < 
-                                        (rewriteResults.word_count_comparison?.original || 0)
+                                        (rewriteResults.word_count_comparison?.rewritten || 0) <
+                                            (rewriteResults.word_count_comparison?.original || 0)
                                             ? 'shorter' : 'longer'
                                     }
                                 </Badge>

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Wand2, 
-    Loader2, 
-    CheckCircle2, 
-    AlertTriangle, 
-    Lightbulb, 
+import {
+    Wand2,
+    Loader2,
+    CheckCircle2,
+    AlertTriangle,
+    Lightbulb,
     RefreshCw,
     ChevronDown,
     ChevronUp,
@@ -24,7 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { base44 } from '@/api/base44Client';
+import { invokeGeminiLLM, isGeminiAvailable } from '@/api/geminiClient';
+
 import { toast } from "sonner";
 
 const SUGGESTION_TYPES = {
@@ -69,7 +70,7 @@ function SuggestionCard({ suggestion, onApply, onDismiss, copiedId, onCopy }) {
                             </Badge>
                         )}
                     </div>
-                    
+
                     <h4 className="text-sm font-semibold text-slate-800 mb-1">{suggestion.title}</h4>
                     <p className="text-xs text-slate-600 mb-3">{suggestion.description}</p>
 
@@ -162,14 +163,14 @@ function ToneAnalysis({ toneData }) {
                 <MessageSquare className="w-4 h-4 text-amber-600" />
                 <h4 className="text-sm font-semibold text-slate-800">Tone Analysis</h4>
             </div>
-            
+
             <div className="space-y-3">
                 <div>
                     <p className="text-xs text-slate-500 mb-2">Detected Tones:</p>
                     <div className="flex flex-wrap gap-2">
                         {toneData.detected_tones?.map((tone, idx) => (
-                            <Badge 
-                                key={idx} 
+                            <Badge
+                                key={idx}
                                 className={`${toneColors[tone.toLowerCase()] || 'bg-slate-500'} text-white`}
                             >
                                 {tone}
@@ -177,7 +178,7 @@ function ToneAnalysis({ toneData }) {
                         ))}
                     </div>
                 </div>
-                
+
                 <div>
                     <p className="text-xs text-slate-500 mb-1">Consistency Score:</p>
                     <div className="flex items-center gap-2">
@@ -185,10 +186,9 @@ function ToneAnalysis({ toneData }) {
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${toneData.consistency_score || 0}%` }}
-                                className={`h-full rounded-full ${
-                                    toneData.consistency_score >= 80 ? 'bg-emerald-500' :
+                                className={`h-full rounded-full ${toneData.consistency_score >= 80 ? 'bg-emerald-500' :
                                     toneData.consistency_score >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                                }`}
+                                    }`}
                             />
                         </div>
                         <span className="text-xs font-semibold text-slate-700">{toneData.consistency_score}%</span>
@@ -231,8 +231,14 @@ export default function AIWritingAssistant({ text, writingStyle, onApplySuggesti
         setIsAnalyzing(true);
         setDismissed([]);
 
+        if (!isGeminiAvailable()) {
+            toast.error('Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your .env file');
+            setIsAnalyzing(false);
+            return;
+        }
+
         try {
-            const response = await base44.integrations.Core.InvokeLLM({
+            const response = await invokeGeminiLLM({
                 prompt: `You are an expert writing coach and editor. Analyze the following text and provide detailed suggestions for improvement.
 
 Writing Style Context: ${writingStyle}
@@ -305,6 +311,7 @@ Provide 5-10 actionable suggestions. Each suggestion should have a clear explana
                 }
             });
 
+
             setSuggestions(response.suggestions || []);
             setToneAnalysis(response.tone_analysis || null);
             setHasAnalyzed(true);
@@ -329,8 +336,8 @@ Provide 5-10 actionable suggestions. Each suggestion should have a clear explana
     };
 
     const activeSuggestions = suggestions.filter(s => !dismissed.includes(s.id));
-    const filteredSuggestions = activeTab === 'all' 
-        ? activeSuggestions 
+    const filteredSuggestions = activeTab === 'all'
+        ? activeSuggestions
         : activeSuggestions.filter(s => s.type === activeTab);
 
     const suggestionCounts = {
@@ -389,7 +396,7 @@ Provide 5-10 actionable suggestions. Each suggestion should have a clear explana
                         </div>
                         <h4 className="text-lg font-semibold text-slate-800 mb-2">AI-Powered Analysis</h4>
                         <p className="text-sm text-slate-500 max-w-md mx-auto mb-4">
-                            Get sophisticated grammar corrections, style improvements, tone consistency checks, 
+                            Get sophisticated grammar corrections, style improvements, tone consistency checks,
                             and sentence restructuring suggestions with detailed explanations.
                         </p>
                         <div className="flex flex-wrap justify-center gap-2">
